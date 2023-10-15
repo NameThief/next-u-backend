@@ -21,9 +21,16 @@ module.exports = async function (fastify, opts) {
     method: 'GET',
     preHandler: validateToken,
     handler: async (req, reply) => {
+      const user = await database('user').where({ id: req.userId }).first();
+      return {
+        user: {
+          email: user.email,
+          username: user.username,
+          token: user.token,
+        },
       // add the route implementation here
     }
-  })
+  }} )
 
   // --- SIGN UP ---
   // this route should receive the following fields on the request body: user.username, user.email and user.password
@@ -44,6 +51,20 @@ module.exports = async function (fastify, opts) {
     url: '/api/users',
     method: 'POST',
     handler: async (req, reply) => {
+      const { username, email, password } = req.body.user;
+        const hashedPassword = await hashString(password);
+        const token = await generateToken();
+
+        const [newUser] = await database('user').insert({
+          username,
+          email,
+          password: hashedPassword,
+          token,
+        }).returning(['username', 'email', 'token']);
+       
+        return {
+          user: newUser,
+        };
       // add the route implementation here
     }
   })
@@ -95,3 +116,6 @@ module.exports = async function (fastify, opts) {
     }
   })
 }
+
+// postgres://test_database_b8wp_user:3fRSLQQR6QHr5h00hHuqQaWaSYQcuPFu@
+// dpg-ckj6888mccbs73dvrea0-a.frankfurt-postgres.render.com/test_database_b8wp
